@@ -5,4 +5,4 @@
 Install `pdm`
 Run `pdm install`
 
-Run code with `pdm run -- python src/backend/__main__.py`
+`make build up`, container will auto reload on change, if not working rebuild.
