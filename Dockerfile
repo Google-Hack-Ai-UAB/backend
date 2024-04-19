@@ -1,8 +1,9 @@
-FROM python:slim
+FROM python:3.11-slim
 
 # Install deps
 RUN pip install --upgrade pip && pip install pdm
 RUN apt update
+RUN apt install -y gcc
 RUN apt install -y uvicorn
 
 WORKDIR /app
