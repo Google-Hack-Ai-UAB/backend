@@ -15,11 +15,6 @@ from bson.objectid import ObjectId
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from starlette.responses import JSONResponse
 
-import recruit_tracker_api.utils as utils
-from recruit_tracker_api.constants import MONGO_URL as url
-from recruit_tracker_api.constants import OPENAI_API_KEY
-from recruit_tracker_api.mongo import init_mongo
-
 openAI_client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 
@@ -29,7 +24,6 @@ hr_router = APIRouter()
 @hr_router.get("/hr")
 async def root():
     return {"message": "FAST!"}
-
 
 
 @hr_router.post("/hr/import")
@@ -62,7 +56,6 @@ async def import_csv(file: UploadFile = File(...)):
         return {"Import": "Import Successful!"}
     except Exception as e:
         return {"error": str(e)}
-
 
 
 @hr_router.post("/hr/suggestion")

@@ -1,22 +1,16 @@
+import base64
+import io
 import tempfile
 
-import csv
-import csv, base64, bcrypt, jwt, io
-import fitz, PyPDF2
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-
-GPT_API_ENDPOINT = 'https://api.openai.com/v1/engines/davinci-codex/completions'
-
-from recruit_tracker_api.constants import OPENAI_API_KEY as GPT_KEY
-
+import bcrypt
+import fitz
+import jwt
+import PyPDF2
 from fastapi import Depends, File, HTTPException, UploadFile
 from fastapi.security import OAuth2PasswordBearer
-
 from gridfs import GridFS
-from pymongo import MongoClient
 
-from recruit_tracker_api.constants import ALGORITHM, SECRET_KEY
+from backend.constants import ALGORITHM, SECRET_KEY
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -34,8 +28,6 @@ def verify_password(password: str, hashed_password: str) -> bool:
 def create_jwt_token(user: dict, db):
     user_collection = db["users"]
     found_user = user_collection.find_one({"email": user["email"]})
-
-    print(found_user)
 
     to_encode = {"role": found_user["role"], "email": found_user["email"]}
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -65,8 +57,6 @@ def decode_role(current_user: dict = Depends(get_current_user)):
 
 
 def store_pdf(db, pdf, email):
-
-
     fs = GridFS(db, collection="pdfs")  # Use a custom collection for PDFs
 
     try:
@@ -75,7 +65,6 @@ def store_pdf(db, pdf, email):
             tmp.close()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
     return fs.put(open(tmp.name, "rb"), metadata={"user_email": email})
 
@@ -103,16 +92,14 @@ async def import_csv(file: UploadFile = File(...)):
             row = dict(zip(headers, values))
             json_data.append(row)
 
-    
     return {"json_data": json_data}
-
 
 
 def binary_to_text(pdf_binary_data):
     try:
         # Create a PyMuPDF document from the binary data
         pdf_document = fitz.open(stream=pdf_binary_data, filetype="pdf")
-        
+
         text = ""
         for page_number in range(pdf_document.page_count):
             page = pdf_document.load_page(page_number)
@@ -141,6 +128,7 @@ def pdf_to_bytes(pdf_data):
 
     return pdf_bytes
 
+
 def convert_pdf_to_png(input_path):
     # Use PyPDF2 or other PDF conversion libraries to convert PDF to PNG
     # Example using PyPDF2 (install it with `pip install PyPDF2`)
@@ -150,8 +138,8 @@ def convert_pdf_to_png(input_path):
         pdf_reader = PyPDF2.PdfReader(pdf_file)
         pdf_page = pdf_reader.pages[0]
 
-        from reportlab.pdfgen import canvas
         from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
 
         # Create a ReportLab canvas
         packet = io.BytesIO()
