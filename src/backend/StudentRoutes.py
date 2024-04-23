@@ -61,7 +61,9 @@ async def upload(
     pdf = await resume.read()
 
     pdf_collection = db["pdfs"]
-    pdf_collection.insert_one({"user": user_data["email"], "pdf": pdf})
+    pdf_collection.insert_one(
+        {"user": user_data["email"], "pdf": pdf, "filename": resume.filename}
+    )
 
 
 @student_router.post("/resume/query")
