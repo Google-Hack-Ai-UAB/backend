@@ -45,19 +45,23 @@ async def update_profile(request: Request, token_payload: str = Depends(oauth2_s
 
 
 @student_router.post("/upload")
-async def upload(resume: UploadFile = File(...)):
+async def upload(
+    resume: UploadFile = File(...), token_payload: str = Depends(oauth2_scheme)
+):
+    response = requests.get(
+        f"https://{DOMAIN}/userinfo",
+        headers={"Authorization": f"Bearer {token_payload}"},
+    )
+
+    user_data = response.json()
+
     client = init_mongo()
     db = client["ai"]
 
     pdf = await resume.read()
 
-    email = "test"
-
     pdf_collection = db["pdfs"]
-    pdf_collection.insert_one({"user": email, "pdf": pdf})
-
-    user_collection = db["users"]
-    user_collection.insert_one({"_id": email})
+    pdf_collection.insert_one({"user": user_data["email"], "pdf": pdf})
 
 
 @student_router.post("/resume/query")
