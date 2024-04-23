@@ -1,12 +1,14 @@
 # PDM
 
+from types import new_class
+
 import requests
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 from fastapi.responses import Response
 
 from backend.constants import DOMAIN
 from backend.Models import ReadResume
-from backend.mongo import init_mongo
+from backend.mongo import get_cursor, init_mongo
 from backend.utils import oauth2_scheme
 
 student_router = APIRouter()
@@ -20,8 +22,26 @@ def get_profile(token_payload: str = Depends(oauth2_scheme)):
     )
 
     user_data = response.json()
+    cursor = get_cursor("ai", "users")
+    user = cursor.find_one({"email": user_data["email"]})
 
-    return {"userData": user_data}
+    if user:
+        user.pop("_id")
+        user.pop("userId")
+
+    return {"userData": user}
+
+
+@student_router.post("/applicant")
+async def update_profile(request: Request, token_payload: str = Depends(oauth2_scheme)):
+    user = await request.json()
+    filter = {"email": user["email"]}
+    new_values = {"$set": {**user}}
+
+    cursor = get_cursor("ai", "users")
+    cursor.update_one(filter, new_values)
+
+    print(f"Request: {await request.json()}")
 
 
 @student_router.post("/upload")

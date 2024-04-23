@@ -1,3 +1,4 @@
+import logging
 from typing import Union
 
 from dotenv import load_dotenv
@@ -9,6 +10,8 @@ from backend.StudentRoutes import student_router
 app = FastAPI()
 
 origins = ["*"]
+
+logging.basicConfig(level=logging.DEBUG)
 
 app.add_middleware(
     CORSMiddleware,

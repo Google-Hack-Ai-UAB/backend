@@ -12,6 +12,7 @@ WORKDIR /app
 COPY pyproject.toml /app/pyproject.toml
 COPY pdm.lock /app/pdm.lock
 COPY ./src/backend /app/backend
+COPY ./.env /app/.env
 
 RUN pdm install
 EXPOSE 8000
