@@ -1,6 +1,5 @@
 # PDM
-
-from types import new_class
+import logging
 
 import requests
 from fastapi import APIRouter, Depends, File, Request, UploadFile
@@ -13,6 +12,8 @@ from backend.utils import oauth2_scheme
 
 student_router = APIRouter()
 
+LOG = logging.getLogger(__name__)
+
 
 @student_router.get("/applicant")
 def get_profile(token_payload: str = Depends(oauth2_scheme)):
@@ -22,12 +23,22 @@ def get_profile(token_payload: str = Depends(oauth2_scheme)):
     )
 
     user_data = response.json()
+    LOG.debug(f"User Data: {user_data}")
+
     cursor = get_cursor("ai", "users")
     user = cursor.find_one({"email": user_data["email"]})
 
     if user:
         user.pop("_id")
         user.pop("userId")
+
+    cursor = get_cursor("ai", "pdfs")
+    pdf = cursor.find_one({"user": user_data["email"]})
+
+    LOG.info(f"Pdf: {pdf}")
+
+    if pdf:
+        user["pdf"] = pdf["filename"]
 
     return {"userData": user}
 
