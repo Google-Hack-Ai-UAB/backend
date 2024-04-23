@@ -1,12 +1,27 @@
 # PDM
 
-from fastapi import APIRouter, File, UploadFile
+import requests
+from fastapi import APIRouter, Depends, File, UploadFile
 from fastapi.responses import Response
 
+from backend.constants import DOMAIN
 from backend.Models import ReadResume
 from backend.mongo import init_mongo
+from backend.utils import oauth2_scheme
 
 student_router = APIRouter()
+
+
+@student_router.get("/applicant")
+def get_profile(token_payload: str = Depends(oauth2_scheme)):
+    response = requests.get(
+        f"https://{DOMAIN}/userinfo",
+        headers={"Authorization": f"Bearer {token_payload}"},
+    )
+
+    user_data = response.json()
+
+    return {"userData": user_data}
 
 
 @student_router.post("/upload")

@@ -1,16 +1,20 @@
 import base64
 import io
 import tempfile
+from typing import Optional
 
 import bcrypt
 import fitz
 import jwt
 import PyPDF2
-from fastapi import Depends, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.security import OAuth2PasswordBearer
 from gridfs import GridFS
+from jwt import PyJWTError
+from jwt import decode as jwt_decode
+from pydantic import BaseModel
 
-from backend.constants import ALGORITHM, SECRET_KEY
+from backend.constants import ALGORITHM, CLIENT_ID, DOMAIN, SECRET_KEY
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -162,4 +166,10 @@ def convert_pdf_to_png(input_path):
             output_pdf.write(output_file)
 
 
-# print(csv_to_json("data.csv"))
+def decode_jwt(token: str) -> dict:
+    try:
+        decoded_token = jwt_decode(token, options={"verify_signature": False})
+        print(decoded_token)
+        return decoded_token
+    except PyJWTError as e:
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
