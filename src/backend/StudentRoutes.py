@@ -1,19 +1,10 @@
 # PDM
-import json
-import tempfile
-from tempfile import NamedTemporaryFile
 
-from bson.objectid import ObjectId
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import (FileResponse, JSONResponse, Response,
-                               StreamingResponse)
-from gridfs import GridFS
-from pymongo import errors
+from fastapi import APIRouter, File, UploadFile
+from fastapi.responses import Response
 
 from backend.Models import ReadResume
 from backend.mongo import init_mongo
-from backend.utils import convert_pdf_to_png, store_pdf
 
 student_router = APIRouter()
 
