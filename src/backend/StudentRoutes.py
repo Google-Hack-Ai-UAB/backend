@@ -15,6 +15,26 @@ student_router = APIRouter()
 LOG = logging.getLogger(__name__)
 
 
+@student_router.get("/user")
+def get_user(token_payload: str = Depends(oauth2_scheme)):
+    response = requests.get(
+        f"https://{DOMAIN}/userinfo",
+        headers={"Authorization": f"Bearer {token_payload}"},
+    )
+
+    user_data = response.json()
+    LOG.debug(f"User Data: {user_data}")
+
+    cursor = get_cursor("ai", "users")
+    user = cursor.find_one({"email": user_data["email"]})
+
+    if user:
+        user.pop("_id")
+        user.pop("userId")
+
+    return {"userData": user}
+
+
 @student_router.get("/applicant")
 def get_profile(token_payload: str = Depends(oauth2_scheme)):
     response = requests.get(
@@ -37,7 +57,7 @@ def get_profile(token_payload: str = Depends(oauth2_scheme)):
 
     LOG.info(f"Pdf: {pdf}")
 
-    if pdf:
+    if pdf and user:
         user["pdf"] = pdf["filename"]
 
     return {"userData": user}
