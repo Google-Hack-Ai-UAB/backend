@@ -10,21 +10,6 @@ services:
       - ./src/backend:/app/backend
     networks:
       - GoogleHack
-  mongo:
-    container_name: "mongo"
-    image: mongo
-    restart: always
-    volumes:
-      - ./data:/data/db
-      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-    ports:
-      - 27017:27017
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
-    networks:
-      - GoogleHack
 networks:
   GoogleHack:
-    # Needed external to be false since there is not already a network made
     external: false
