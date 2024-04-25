@@ -55,10 +55,8 @@ def get_profile(token_payload: str = Depends(oauth2_scheme)):
     cursor = get_cursor("ai", "pdfs")
     pdf = cursor.find_one({"user": user_data["email"]})
 
-    LOG.info(f"Pdf: {pdf}")
-
-    if pdf and user:
-        user["pdf"] = pdf["filename"]
+    # if pdf and user:
+    #     user["pdf"] = pdf["filename"]
 
     return {"userData": user}
 
@@ -117,3 +115,19 @@ async def read(query: ReadResume):
 
     except Exception as e:
         return {"error": str(e)}
+
+
+@student_router.get("/jobs")
+async def read_jobs():
+    try:
+        cursor = get_cursor("ai", "jobs")
+        jobs = []
+
+        for document in cursor.find().limit(10):
+            document.pop("recruiter")
+            document.pop("_id")
+            jobs.append(document)
+
+        return {"jobs": jobs}
+    except Exception as e:
+        return {"error": e}

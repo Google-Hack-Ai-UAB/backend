@@ -1,4 +1,5 @@
 import base64
+import csv
 import io
 import tempfile
 from typing import Optional
@@ -101,7 +102,6 @@ async def import_csv(file: UploadFile = File(...)):
 
 def binary_to_text(pdf_binary_data):
     try:
-        # Create a PyMuPDF document from the binary data
         pdf_document = fitz.open(stream=pdf_binary_data, filetype="pdf")
 
         text = ""
@@ -112,7 +112,6 @@ def binary_to_text(pdf_binary_data):
         return text
 
     except Exception as e:
-        # Handle exceptions, such as invalid PDF format
         print(f"Error converting PDF to text: {e}")
         return None
 
@@ -121,11 +120,9 @@ def pdf_to_bytes(pdf_data):
     pdf_reader = PyPDF2.PdfReader(io.BytesIO(pdf_data))
     pdf_writer = PyPDF2.PdfWriter()
 
-    # Copy all pages from the reader to the writer
     for page_num in range(pdf_reader.getNumPages()):
         pdf_writer.addPage(pdf_reader.getPage(page_num))
 
-    # Create a new byte stream for the output PDF
     pdf_output = io.BytesIO()
     pdf_writer.write(pdf_output)
     pdf_bytes = pdf_output.getvalue()
@@ -133,43 +130,15 @@ def pdf_to_bytes(pdf_data):
     return pdf_bytes
 
 
-def convert_pdf_to_png(input_path):
-    # Use PyPDF2 or other PDF conversion libraries to convert PDF to PNG
-    # Example using PyPDF2 (install it with `pip install PyPDF2`)
-    from PyPDF2 import PdfReader, PdfWriter
-
-    with open(input_path, "rb") as pdf_file:
-        pdf_reader = PyPDF2.PdfReader(pdf_file)
-        pdf_page = pdf_reader.pages[0]
-
-        from reportlab.lib.pagesizes import letter
-        from reportlab.pdfgen import canvas
-
-        # Create a ReportLab canvas
-        packet = io.BytesIO()
-        can = canvas.Canvas(packet, pagesize=letter)
-        can.drawString(100, 100, "Hello world!")
-        can.save()
-
-        # Move to the beginning of the BytesIO packet
-        packet.seek(0)
-
-        new_pdf = PdfReader(packet)
-
-        # Create a new PDF with ReportLab content and the existing page
-        output_pdf = PdfWriter()
-        output_pdf.add_page(pdf_page)
-        output_pdf.add_page(new_pdf.pages[0])
-
-        # Write the combined PDF to the same file
-        with open(input_path, "wb") as output_file:
-            output_pdf.write(output_file)
-
-
 def decode_jwt(token: str) -> dict:
     try:
         decoded_token = jwt_decode(token, options={"verify_signature": False})
-        print(decoded_token)
         return decoded_token
     except PyJWTError as e:
         raise HTTPException(status_code=401, detail="Could not validate credentials")
+
+
+def get_job_listing_info():
+    with open("allJobs.csv", "r") as f:
+        reader = csv.reader(f)
+        return [row for row in reader]
