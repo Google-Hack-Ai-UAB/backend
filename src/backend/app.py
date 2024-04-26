@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.ChatRoutes import ChatRouter
 from backend.StudentRoutes import student_router
 
 app = FastAPI()
@@ -22,6 +23,7 @@ app.add_middleware(
 )
 
 app.include_router(student_router)
+app.include_router(ChatRouter)
 load_dotenv()
 
 
