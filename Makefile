@@ -20,3 +20,6 @@ pull:
 
 up:
 	docker compose up -d
+
+test:
+	pdm run -- pytest -v
