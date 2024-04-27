@@ -1,9 +1,12 @@
+# STL
 import logging
 
+# PDM
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# LOCAL
 from backend.ChatRoutes import ChatRouter
 from backend.StudentRoutes import student_router
 

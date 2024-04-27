@@ -1,21 +1,24 @@
-import base64
-import csv
+# STL
 import io
+import csv
+import base64
 import tempfile
 from typing import Optional
 
-import bcrypt
-import fitz
+# PDM
 import jwt
+import fitz
+import bcrypt
 import PyPDF2
-from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
-from fastapi.security import OAuth2PasswordBearer
-from gridfs import GridFS
 from jwt import PyJWTError
 from jwt import decode as jwt_decode
+from gridfs import GridFS
+from fastapi import File, Header, Depends, FastAPI, UploadFile, HTTPException
 from pydantic import BaseModel
+from fastapi.security import OAuth2PasswordBearer
 
-from backend.constants import ALGORITHM, CLIENT_ID, DOMAIN, SECRET_KEY
+# LOCAL
+from backend.constants import DOMAIN, ALGORITHM, CLIENT_ID, SECRET_KEY
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -142,3 +145,8 @@ def get_job_listing_info():
     with open("allJobs.csv", "r") as f:
         reader = csv.reader(f)
         return [row for row in reader]
+
+
+def job_to_json(job):
+    job.pop("applicant")
+    return {"_id": str(job.pop("_id")), "job": str(job.pop("job")), **job}
