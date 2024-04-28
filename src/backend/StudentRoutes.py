@@ -195,3 +195,49 @@ async def get_job_status(token_payload: str = Depends(oauth2_scheme)):
     except Exception as e:
         print(e)
         return {"error": e}
+
+
+@student_router.get("/recruiter_jobs")
+async def get_recruiter_jobs(token_payload: str = Depends(oauth2_scheme)):
+    try:
+        user = get_user_document(token_payload=token_payload)
+        application_cursor = get_cursor("ai", "applications")
+
+        if user:
+            applications = [
+                application
+                for application in application_cursor.find({"company": user["company"]})
+            ]
+
+            job_cursor = get_cursor("ai", "jobs")
+            user_cursor = get_cursor("ai", "users")
+
+            applied_jobs = list()
+
+            for application in applications:
+                job = job_cursor.find_one({"_id": application["job"]})
+
+                LOG.error(f"JOB: {job}")
+
+                user = user_cursor.find_one({"_id": application["applicant"]})
+
+                LOG.error(f"User: {user}")
+
+                if job and user:
+                    applied_jobs.append(
+                        {
+                            "jobId": str(job["_id"]),
+                            "applicationId": str(application["_id"]),
+                            "applicantEmail": user["email"],
+                            "fullName": user.get("fullName"),
+                            "jobTitle": job["job_title"],
+                            "company": job.get("company"),
+                            "timeCreated": application["timeCreated"],
+                            "status": application["status"],
+                        }
+                    )
+            return {"jobs": applied_jobs}
+
+    except Exception as e:
+        print(e)
+        return {"error": e}
