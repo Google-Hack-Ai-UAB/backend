@@ -7,7 +7,7 @@ from datetime import datetime
 import requests
 from fastapi import File, Depends, Request, APIRouter, UploadFile
 from bson.objectid import ObjectId
-from fastapi.responses import Response
+from fastapi.responses import Response, JSONResponse
 
 # LOCAL
 from backend.mongo import get_cursor, init_mongo
@@ -23,22 +23,25 @@ LOG = logging.getLogger(__name__)
 def get_user_document(
     token_payload: str = Depends(oauth2_scheme), trim_ids=False
 ) -> Optional[dict]:
-    response = requests.get(
-        f"https://{DOMAIN}/userinfo",
-        headers={"Authorization": f"Bearer {token_payload}"},
-    )
+    try:
+        response = requests.get(
+            f"https://{DOMAIN}/userinfo",
+            headers={"Authorization": f"Bearer {token_payload}"},
+        )
 
-    user_data = response.json()
-    LOG.debug(f"User Data: {user_data}")
+        user_data = response.json()
+        LOG.error(f"User Data: {user_data}")
 
-    cursor = get_cursor("ai", "users")
-    user = cursor.find_one({"email": user_data["email"]})
+        cursor = get_cursor("ai", "users")
+        user = cursor.find_one({"email": user_data["email"]})
 
-    if user and trim_ids:
-        user.pop("_id")
-        user.pop("userId")
+        if user and trim_ids:
+            user.pop("_id")
+            user.pop("userId")
 
-    return user
+        return user
+    except:
+        print("Too many reqs")
 
 
 @student_router.get("/user")
@@ -131,7 +134,7 @@ async def read_jobs():
 
         return {"jobs": jobs}
     except Exception as e:
-        return {"error": e}
+        return JSONResponse(content="Dead request", status_code=501)
 
 
 @student_router.post("/apply")
@@ -193,8 +196,7 @@ async def get_job_status(token_payload: str = Depends(oauth2_scheme)):
             return {"jobs": applied_jobs}
 
     except Exception as e:
-        print(e)
-        return {"error": e}
+        return JSONResponse(content="Dead request", status_code=501)
 
 
 @student_router.get("/recruiter_jobs")
