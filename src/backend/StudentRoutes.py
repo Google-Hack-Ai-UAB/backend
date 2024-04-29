@@ -56,8 +56,8 @@ def get_profile(token_payload: str = Depends(oauth2_scheme)):
         cursor = get_cursor("ai", "pdfs")
         pdf = cursor.find_one({"user": user["email"]})
 
-        # if pdf and user:
-        #     user["pdf"] = pdf["filename"]
+        if pdf and user:
+            user["pdf"] = pdf["filename"]
 
         return {"userData": user}
 
