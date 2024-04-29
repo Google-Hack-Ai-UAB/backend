@@ -12,7 +12,7 @@ from fastapi.responses import Response, JSONResponse
 # LOCAL
 from backend.mongo import get_cursor, init_mongo
 from backend.utils import job_to_json, oauth2_scheme
-from backend.Models import ReadResume, ApplyForJob
+from backend.Models import ReadResume, ApplyForJob, CreateComment, GatherComment
 from backend.constants import DOMAIN
 
 student_router = APIRouter()
@@ -187,6 +187,8 @@ async def get_job_status(token_payload: str = Depends(oauth2_scheme)):
                         {
                             "jobId": str(job["_id"]),
                             "applicationId": str(application["_id"]),
+                            "fullName": user["fullName"],
+                            "applicantEmail": user["email"],
                             "jobTitle": job["job_title"],
                             "company": job.get("company"),
                             "timeCreated": application["timeCreated"],
@@ -243,3 +245,54 @@ async def get_recruiter_jobs(token_payload: str = Depends(oauth2_scheme)):
     except Exception as e:
         print(e)
         return {"error": e}
+
+
+@student_router.post("/comment")
+async def create_comment(
+    create_comment: CreateComment, token_payload: str = Depends(oauth2_scheme)
+):
+    try:
+        user = get_user_document(token_payload=token_payload)
+        cursor = get_cursor("ai", "comments")
+
+        if user:
+            cursor.insert_one(
+                {
+                    "application": ObjectId(create_comment.applicationId),
+                    "user": user["_id"],
+                    "text": create_comment.text,
+                    "timeCreated": datetime.now(),
+                }
+            )
+
+    except Exception as e:
+        ...
+
+
+@student_router.post("/comments")
+async def get_comment(
+    gather_comment: GatherComment, token_payload: str = Depends(oauth2_scheme)
+):
+    try:
+        cursor = get_cursor("ai", "comments")
+        user_cursor = get_cursor("ai", "users")
+        comments = cursor.find({"application": ObjectId(gather_comment.applicationId)})
+        comments = [comment for comment in comments]
+
+        for comment in comments:
+            user = user_cursor.find_one({"_id": comment["user"]})
+
+            comment.pop("_id")
+
+            if user:
+                comment["application"] = str(comment["application"])
+                comment["user"] = str(comment["user"])
+                comment["userName"] = user["fullName"]
+                comment["userEmail"] = user["email"]
+
+                print(comment)
+
+        return {"comments": comments}
+
+    except Exception as e:
+        ...
