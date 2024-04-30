@@ -74,6 +74,8 @@ async def upload(
         {"user": user_data["email"], "pdf": pdf, "filename": resume.filename}
     )
 
+    return JSONResponse(content={"message": "success"})
+
 
 @JobRouter.post("/resume/query")
 async def read(query: ReadResume):
@@ -94,7 +96,7 @@ async def read(query: ReadResume):
             return {"message": "No PDF found for the user"}
 
     except Exception as e:
-        return {"error": str(e)}
+        JSONResponse(content={"error": str(e)}, status_code=501)
 
 
 @JobRouter.get("/jobs")
@@ -109,8 +111,9 @@ async def read_jobs():
             jobs.append(document)
 
         return {"jobs": jobs}
+
     except Exception as e:
-        return JSONResponse(content="Dead request", status_code=501)
+        return JSONResponse(content={"error": e}, status_code=501)
 
 
 @JobRouter.post("/apply")
@@ -138,8 +141,7 @@ async def apply_job(
             )
 
     except Exception as e:
-        print(e)
-        return {"error": e}
+        return JSONResponse(content={"error": e}, status_code=501)
 
 
 @JobRouter.get("/applied_jobs")
@@ -182,7 +184,7 @@ async def get_job_status(token_payload: str = Depends(oauth2_scheme)):
             return {"jobs": applied_jobs}
 
     except Exception as e:
-        return JSONResponse(content="Dead request", status_code=501)
+        return JSONResponse(content={"error": e}, status_code=501)
 
 
 @JobRouter.get("/recruiter_jobs")
@@ -231,8 +233,7 @@ async def get_recruiter_jobs(token_payload: str = Depends(oauth2_scheme)):
             return {"jobs": applied_jobs}
 
     except Exception as e:
-        print(e)
-        return {"error": e}
+        return JSONResponse(content={"error": e}, status_code=501)
 
 
 @JobRouter.post("/comment")
@@ -254,13 +255,11 @@ async def create_comment(
             )
 
     except Exception as e:
-        ...
+        return JSONResponse(content={"error": e}, status_code=501)
 
 
 @JobRouter.post("/comments")
-async def get_comment(
-    gather_comment: GatherComment, token_payload: str = Depends(oauth2_scheme)
-):
+async def get_comment(gather_comment: GatherComment):
     try:
         cursor = get_cursor("ai", "comments")
         user_cursor = get_cursor("ai", "users")
@@ -288,4 +287,4 @@ async def get_comment(
         return {"comments": comments}
 
     except Exception as e:
-        print(e)
+        return JSONResponse(content={"error": e}, status_code=501)
