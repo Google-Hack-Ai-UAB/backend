@@ -215,6 +215,7 @@ async def get_recruiter_jobs(token_payload: str = Depends(oauth2_scheme)):
 
             job_cursor = get_cursor("ai", "jobs")
             user_cursor = get_cursor("ai", "users")
+            pdf_cursor = get_cursor("ai", "pdfs")
 
             applied_jobs = list()
 
@@ -225,7 +226,13 @@ async def get_recruiter_jobs(token_payload: str = Depends(oauth2_scheme)):
 
                 user = user_cursor.find_one({"_id": application["applicant"]})
 
+                pdf = pdf_cursor.find_one({"user": user["email"]}) if user else None
+                if not pdf:
+                    pdf = dict()
+
                 LOG.error(f"User: {user}")
+
+                LOG.error(f"PDF: {pdf}")
 
                 if job and user:
                     applied_jobs.append(
@@ -238,6 +245,9 @@ async def get_recruiter_jobs(token_payload: str = Depends(oauth2_scheme)):
                             "company": job.get("company"),
                             "timeCreated": application["timeCreated"],
                             "status": application["status"],
+                            "userResume": {
+                                "filename": pdf.get("filename"),
+                            },
                         }
                     )
             return {"jobs": applied_jobs}
