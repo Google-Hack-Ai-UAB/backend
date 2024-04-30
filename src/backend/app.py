@@ -7,8 +7,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # LOCAL
+from backend.JobRoutes import JobRouter
 from backend.ChatRoutes import ChatRouter
-from backend.StudentRoutes import student_router
 
 app = FastAPI()
 
@@ -24,6 +24,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(student_router)
+app.include_router(JobRouter)
 app.include_router(ChatRouter)
 load_dotenv()

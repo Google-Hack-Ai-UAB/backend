@@ -1,6 +1,5 @@
 # STL
 import logging
-from typing import Optional
 from datetime import datetime
 
 # PDM
@@ -11,47 +10,23 @@ from fastapi.responses import Response, JSONResponse
 
 # LOCAL
 from backend.mongo import get_cursor, init_mongo
-from backend.utils import job_to_json, oauth2_scheme
+from backend.utils import oauth2_scheme, get_user_document
 from backend.Models import ReadResume, ApplyForJob, CreateComment, GatherComment
 from backend.constants import DOMAIN
 
-student_router = APIRouter()
+JobRouter = APIRouter()
 
 LOG = logging.getLogger(__name__)
 
 
-def get_user_document(
-    token_payload: str = Depends(oauth2_scheme), trim_ids=False
-) -> Optional[dict]:
-    try:
-        response = requests.get(
-            f"https://{DOMAIN}/userinfo",
-            headers={"Authorization": f"Bearer {token_payload}"},
-        )
-
-        user_data = response.json()
-        LOG.error(f"User Data: {user_data}")
-
-        cursor = get_cursor("ai", "users")
-        user = cursor.find_one({"email": user_data["email"]})
-
-        if user and trim_ids:
-            user.pop("_id")
-            user.pop("userId")
-
-        return user
-    except:
-        print("Too many reqs")
-
-
-@student_router.get("/user")
+@JobRouter.get("/user")
 def get_user(token_payload: str = Depends(oauth2_scheme)):
     user = get_user_document(token_payload=token_payload, trim_ids=True)
 
     return {"userData": user}
 
 
-@student_router.get("/applicant")
+@JobRouter.get("/applicant")
 def get_profile(token_payload: str = Depends(oauth2_scheme)):
     user = get_user_document(token_payload=token_payload, trim_ids=True)
 
@@ -65,19 +40,20 @@ def get_profile(token_payload: str = Depends(oauth2_scheme)):
         return {"userData": user}
 
 
-@student_router.post("/applicant")
-async def update_profile(request: Request, token_payload: str = Depends(oauth2_scheme)):
+@JobRouter.post("/applicant")
+async def update_profile(request: Request):
     user = await request.json()
     filter = {"email": user["email"]}
     new_values = {"$set": {**user}}
 
-    cursor = get_cursor("ai", "users")
-    cursor.update_one(filter, new_values)
+    try:
+        cursor = get_cursor("ai", "users")
+        cursor.update_one(filter, new_values)
+    except Exception as e:
+        return JSONResponse({"error": e}, status_code=501)
 
-    print(f"Request: {await request.json()}")
 
-
-@student_router.post("/upload")
+@JobRouter.post("/upload")
 async def upload(
     resume: UploadFile = File(...), token_payload: str = Depends(oauth2_scheme)
 ):
@@ -99,7 +75,7 @@ async def upload(
     )
 
 
-@student_router.post("/resume/query")
+@JobRouter.post("/resume/query")
 async def read(query: ReadResume):
     try:
         user = query.user
@@ -121,7 +97,7 @@ async def read(query: ReadResume):
         return {"error": str(e)}
 
 
-@student_router.get("/jobs")
+@JobRouter.get("/jobs")
 async def read_jobs():
     try:
         cursor = get_cursor("ai", "jobs")
@@ -137,7 +113,7 @@ async def read_jobs():
         return JSONResponse(content="Dead request", status_code=501)
 
 
-@student_router.post("/apply")
+@JobRouter.post("/apply")
 async def apply_job(
     submitted_job: ApplyForJob, token_payload: str = Depends(oauth2_scheme)
 ):
@@ -166,7 +142,7 @@ async def apply_job(
         return {"error": e}
 
 
-@student_router.get("/applied_jobs")
+@JobRouter.get("/applied_jobs")
 async def get_job_status(token_payload: str = Depends(oauth2_scheme)):
     try:
         user = get_user_document(token_payload=token_payload)
@@ -178,6 +154,11 @@ async def get_job_status(token_payload: str = Depends(oauth2_scheme)):
             ]
 
             cursor = get_cursor("ai", "jobs")
+            pdf_cursor = get_cursor("ai", "pdfs")
+
+            pdf = pdf_cursor.find_one({"user": user["email"]}) if user else None
+            if not pdf:
+                pdf = dict()
 
             applied_jobs = []
             for application in applications:
@@ -193,6 +174,9 @@ async def get_job_status(token_payload: str = Depends(oauth2_scheme)):
                             "company": job.get("company"),
                             "timeCreated": application["timeCreated"],
                             "status": application["status"],
+                            "userResume": {
+                                "filename": pdf.get("filename"),
+                            },
                         }
                     )
             return {"jobs": applied_jobs}
@@ -201,7 +185,7 @@ async def get_job_status(token_payload: str = Depends(oauth2_scheme)):
         return JSONResponse(content="Dead request", status_code=501)
 
 
-@student_router.get("/recruiter_jobs")
+@JobRouter.get("/recruiter_jobs")
 async def get_recruiter_jobs(token_payload: str = Depends(oauth2_scheme)):
     try:
         user = get_user_document(token_payload=token_payload)
@@ -222,17 +206,11 @@ async def get_recruiter_jobs(token_payload: str = Depends(oauth2_scheme)):
             for application in applications:
                 job = job_cursor.find_one({"_id": application["job"]})
 
-                LOG.error(f"JOB: {job}")
-
                 user = user_cursor.find_one({"_id": application["applicant"]})
 
                 pdf = pdf_cursor.find_one({"user": user["email"]}) if user else None
                 if not pdf:
                     pdf = dict()
-
-                LOG.error(f"User: {user}")
-
-                LOG.error(f"PDF: {pdf}")
 
                 if job and user:
                     applied_jobs.append(
@@ -257,7 +235,7 @@ async def get_recruiter_jobs(token_payload: str = Depends(oauth2_scheme)):
         return {"error": e}
 
 
-@student_router.post("/comment")
+@JobRouter.post("/comment")
 async def create_comment(
     create_comment: CreateComment, token_payload: str = Depends(oauth2_scheme)
 ):
@@ -279,25 +257,30 @@ async def create_comment(
         ...
 
 
-@student_router.post("/comments")
+@JobRouter.post("/comments")
 async def get_comment(
     gather_comment: GatherComment, token_payload: str = Depends(oauth2_scheme)
 ):
     try:
         cursor = get_cursor("ai", "comments")
         user_cursor = get_cursor("ai", "users")
+
         comments = cursor.find({"application": ObjectId(gather_comment.applicationId)})
         comments = [comment for comment in comments]
+
+        LOG.error(f"COMMENTS: {comments}")
 
         for comment in comments:
             user = user_cursor.find_one({"_id": comment["user"]})
 
             comment.pop("_id")
 
+            LOG.error(f"USER: {user}")
+
             if user:
                 comment["application"] = str(comment["application"])
                 comment["user"] = str(comment["user"])
-                comment["userName"] = user["fullName"]
+                comment["userName"] = user.get("fullName")
                 comment["userEmail"] = user["email"]
 
                 print(comment)
@@ -305,4 +288,4 @@ async def get_comment(
         return {"comments": comments}
 
     except Exception as e:
-        ...
+        print(e)
