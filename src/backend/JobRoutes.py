@@ -267,14 +267,10 @@ async def get_comment(gather_comment: GatherComment):
         comments = cursor.find({"application": ObjectId(gather_comment.applicationId)})
         comments = [comment for comment in comments]
 
-        LOG.error(f"COMMENTS: {comments}")
-
         for comment in comments:
             user = user_cursor.find_one({"_id": comment["user"]})
 
             comment.pop("_id")
-
-            LOG.error(f"USER: {user}")
 
             if user:
                 comment["application"] = str(comment["application"])
