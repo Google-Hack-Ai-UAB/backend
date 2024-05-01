@@ -17,3 +17,8 @@ class CreateComment(BaseModel):
 
 class GatherComment(BaseModel):
     applicationId: str
+
+
+class GatherChat(BaseModel):
+    job_id: str
+    question: str

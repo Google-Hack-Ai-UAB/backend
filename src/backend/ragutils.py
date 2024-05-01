@@ -126,9 +126,13 @@ def query_by_job_id(question, job_id, job_title, job_desc, top_k=3):
         **DO NOT ASSUME OR BASE YOUR ANSWER ON GENDER, PERCEIVED RACE, SEX OR ANY POSSIBLE DEMOGRAPHIC QUALITIES A CANDIDATE MAY POSSES GIVEN WHAT YOU KNOW ABOUT THE CANDIDATES**
 
         **Note**: This is the first step in a multi-stage interview process. Your assessment should help narrow down the pool of candidates to those most likely to succeed in further rounds based on the job requirements.
+
+        **Note**: Be sure not to use random or irrelevant information to make your decision. Your decision should be based on the information provided in the context and the recruiter's question. DO NOT repeat the recruiter's question in your response. DO NOT use non-text symbols such as "*" or "-".
     """
 
     prompt = f"{system_prompt}\nRecruiter Question: ```{question}```\n\nContext: {resume_contexts}\n\nAnswer:"
+
+    # print(prompt)
 
     answer = model.generate_content(prompt)
 

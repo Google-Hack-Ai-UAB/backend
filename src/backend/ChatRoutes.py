@@ -9,6 +9,7 @@ import datetime
 
 from backend.utils import get_user_document, oauth2_scheme
 from backend.mongo import get_cursor
+from backend.Models import GatherChat
 from backend.ragutils import query_by_job_id
 
 ChatRouter = APIRouter()
@@ -32,17 +33,21 @@ def fetch_resumes_by_job_id(job_id: str):
     return resumes
 
 @ChatRouter.post("/chat/{job_id}/query")
-async def chat_query(job_id: str, question: str, token: str = Depends(oauth2_scheme)):
-    LOG.info(f"Received query: {question}, Job ID: {job_id}")
+async def chat_query(
+    chat_details: GatherChat,
+    token: str = Depends(oauth2_scheme)
+):
     user = get_user_document(token_payload=token, trim_ids=True)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
     top_k = 3
-    job_desc = job_desc if job_desc else ""
-    job_title = job_title if job_title else ""
+    # job_desc = job_desc if job_desc else ""
+    job_desc = ""
+    # job_title = job_title if job_title else ""
+    job_title = ""
     try:
         # Call the rag_utils query function
-        answer = query_by_job_id(question, job_id, job_title, job_desc, top_k)
+        answer = query_by_job_id(chat_details.question, chat_details.job_id, job_title, job_desc, top_k)
         return {"answer": answer}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

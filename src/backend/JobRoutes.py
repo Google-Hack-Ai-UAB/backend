@@ -57,7 +57,8 @@ async def update_profile(request: Request):
 @JobRouter.post("/upload/{job_id}")
 async def upload(
     job_id: str,
-    resume: UploadFile = File(...), token_payload: str = Depends(oauth2_scheme)
+    resume: UploadFile = File(...),
+    token_payload: str = Depends(oauth2_scheme)
 ):
     response = requests.get(
         f"https://{DOMAIN}/userinfo",
@@ -122,7 +123,8 @@ async def read_jobs():
 
 @JobRouter.post("/apply")
 async def apply_job(
-    submitted_job: ApplyForJob, token_payload: str = Depends(oauth2_scheme)
+    submitted_job: ApplyForJob,
+    token_payload: str = Depends(oauth2_scheme)
 ):
     try:
         user = get_user_document(token_payload=token_payload)
