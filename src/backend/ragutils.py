@@ -79,7 +79,7 @@ def grab_local_files(resumes: str = "", ret: bool = True):
                 except Exception as e:
                     print(f"Error embedding document from {file_path}, part {i}: {e}")
 
-    index.upsert(vectors=vectors)
+        index.upsert(vectors=vectors)
 
     if ret:
         return data
@@ -114,20 +114,23 @@ def process_and_upload_resume(pdf, job_id, filename, pdf_id):
         "splits": splits
     })
 
-
-def query(question, job_title, job_desc, top_k=3):
+def query_by_job_id(question, job_id, job_title, job_desc, top_k=3):
+    # Embed the question
     question_embedding = embeddings.embed_query(question)
-    index_query = index.query(vector=question_embedding, top_k=top_k)
-    top_docs_ids = [match["id"] for match in index_query["matches"]]
+
+    # Query Pinecone for relevant resume sections
+    query_results = index.query(
+        vector=question_embedding,
+        top_k=top_k,
+        filter={"job_id": job_id}
+    )
 
     resume_contexts = []
-    for doc_id in top_docs_ids:
-        print(doc_id)
-        parts = doc_id.rsplit('_', 1)  # Split on the last underscore only
+    for match in query_results["matches"]:
+        doc_id = match["id"]
+        parts = doc_id.split('_', 1)
         if len(parts) == 2:
             file_key, split_index = parts
-            split_index = split_index[0]
-            print(f"Split Index: {split_index}")
             split_index = int(split_index)
             if file_key in splits_cache and split_index < len(splits_cache[file_key]):
                 name, content = splits_cache[file_key][split_index]
@@ -136,13 +139,6 @@ def query(question, job_title, job_desc, top_k=3):
                 print(f"Missing or invalid split: {doc_id}")
         else:
             print(f"Invalid doc_id format: {doc_id}")
-
-    resume_context = "\n\n".join(resume_contexts)
-    # system_prompt = f"""
-    #     You are an expert technical recruiter assistant. You specialize in vetting candidates after looking at their resume. The recruiter is looking for a candidate who can do:
-    #     ```{job_desc}```
-    #     You will be given a "Recruiter Question" which is the question the recruiter is asking about. You will be given "Context" which is resumes for individuals of which you will assess based on the recruiter question then you will answer the recruiter's question verbosely. Especially if you can answer with a helpful format, that would be a plus. You can assume this is just the first step in a couple sets of interviews. This step is simply finding out which candidates should move forward and which shouldn't
-    # """
 
     system_prompt = f"""
         You are an advanced technical recruiter assistant designed to aid in the preliminary screening of candidates based on their resumes. Your role is to assess candidates' suitability for specific roles as described by the recruiter.
@@ -162,13 +158,69 @@ def query(question, job_title, job_desc, top_k=3):
         **Note**: This is the first step in a multi-stage interview process. Your assessment should help narrow down the pool of candidates to those most likely to succeed in further rounds based on the job requirements.
     """
 
-    prompt = f"{system_prompt}\nRecruiter Question: ```{question}```\n\nContext: {resume_context}\n\nAnswer:"
+    prompt = f"{system_prompt}\nRecruiter Question: ```{question}```\n\nContext: {resume_contexts}\n\nAnswer:"
 
     answer = model.generate_content(prompt)
 
     answer = answer.text
 
     return answer
+
+
+# def query(question, job_title, job_desc, top_k=3):
+#     question_embedding = embeddings.embed_query(question)
+#     index_query = index.query(vector=question_embedding, top_k=top_k)
+#     top_docs_ids = [match["id"] for match in index_query["matches"]]
+
+#     resume_contexts = []
+#     for doc_id in top_docs_ids:
+#         print(doc_id)
+#         parts = doc_id.rsplit('_', 1)  # Split on the last underscore only
+#         if len(parts) == 2:
+#             file_key, split_index = parts
+#             split_index = split_index[0]
+#             print(f"Split Index: {split_index}")
+#             split_index = int(split_index)
+#             if file_key in splits_cache and split_index < len(splits_cache[file_key]):
+#                 name, content = splits_cache[file_key][split_index]
+#                 resume_contexts.append(f"Candidate from {name}:\n{content}")
+#             else:
+#                 print(f"Missing or invalid split: {doc_id}")
+#         else:
+#             print(f"Invalid doc_id format: {doc_id}")
+
+#     resume_context = "\n\n".join(resume_contexts)
+#     # system_prompt = f"""
+#     #     You are an expert technical recruiter assistant. You specialize in vetting candidates after looking at their resume. The recruiter is looking for a candidate who can do:
+#     #     ```{job_desc}```
+#     #     You will be given a "Recruiter Question" which is the question the recruiter is asking about. You will be given "Context" which is resumes for individuals of which you will assess based on the recruiter question then you will answer the recruiter's question verbosely. Especially if you can answer with a helpful format, that would be a plus. You can assume this is just the first step in a couple sets of interviews. This step is simply finding out which candidates should move forward and which shouldn't
+#     # """
+
+    # system_prompt = f"""
+    #     You are an advanced technical recruiter assistant designed to aid in the preliminary screening of candidates based on their resumes. Your role is to assess candidates' suitability for specific roles as described by the recruiter.
+
+    #     For each query:
+    #     - **Job Title**: {job_title}
+    #     - **Job Description**: {job_desc}
+    #     - **Recruiter Question**: This is a direct question from the recruiter regarding a candidate's fit for the role mentioned above.
+
+    #     **Your task**:
+    #     1. Review the provided "Context," which includes selected resumes.
+    #     2. Based on the recruiter's question and the job description, evaluate which candidates should advance to the next stage of the interview process.
+    #     3. Provide a detailed response that explains your reasoning, highlighting relevant qualifications and experiences from the resumes. Use a structured format to answer, such as listing candidates followed by bullet points of their pertinent skills or experiences.
+
+    #     **DO NOT ASSUME OR BASE YOUR ANSWER ON GENDER, PERCEIVED RACE, SEX OR ANY POSSIBLE DEMOGRAPHIC QUALITIES A CANDIDATE MAY POSSES GIVEN WHAT YOU KNOW ABOUT THE CANDIDATES**
+
+    #     **Note**: This is the first step in a multi-stage interview process. Your assessment should help narrow down the pool of candidates to those most likely to succeed in further rounds based on the job requirements.
+    # """
+
+    # prompt = f"{system_prompt}\nRecruiter Question: ```{question}```\n\nContext: {resume_context}\n\nAnswer:"
+
+    # answer = model.generate_content(prompt)
+
+    # answer = answer.text
+
+    # return answer
 
 
 def inline_query_test(question):
