@@ -5,3 +5,6 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 DOMAIN = "dev-s1yk0zclfkgea3vo.us.auth0.com"
 CLIENT_ID = "Jr0WrFGrWrXISnvFV5b3u0bXsGQGsEt8"
+GCP_PROJECT_ID = "vertexaiconversations-418821"
+GCP_LOCATION = "us-central1"
+GCP_PROJECT_NUM = 316665376175

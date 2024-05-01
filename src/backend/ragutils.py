@@ -1,4 +1,6 @@
-import glob
+import glob, os
+from dotenv import load_dotenv
+load_dotenv()
 from werkzeug.utils import secure_filename
 
 # EITHER
@@ -21,7 +23,7 @@ import vertexai
 from vertexai.generative_models import GenerativeModel
 
 # LOCAL IMPORTS
-from backend.constants import PINECONE_API_KEY, GCP_PROJECT_ID, GCP_LOCATION
+from backend.constants import GCP_PROJECT_ID, GCP_LOCATION
 
 # bson
 from bson.objectid import ObjectId
@@ -31,7 +33,7 @@ from pymongo import MongoClient
 from backend.mongo import get_cursor, init_mongo
 
 # GLOBAL VARS
-pc = Pinecone(api_key=PINECONE_API_KEY)
+pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 vertexai.init(project=GCP_PROJECT_ID, location=GCP_LOCATION)
 splits_cache = {}
 embeddings = VertexAIEmbeddings(model_name="textembedding-gecko@003")
