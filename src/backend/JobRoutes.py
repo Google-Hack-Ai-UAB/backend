@@ -13,6 +13,7 @@ from backend.mongo import get_cursor, init_mongo
 from backend.utils import oauth2_scheme, get_user_document
 from backend.Models import ReadResume, ApplyForJob, CreateComment, GatherComment
 from backend.constants import DOMAIN
+from backend.ragutils import process_and_upload_resume
 
 JobRouter = APIRouter()
 
@@ -65,18 +66,20 @@ async def upload(
 
     user_data = response.json()
 
+    pdf = await resume.read()
+
     client = init_mongo()
     db = client["ai"]
 
-    pdf = await resume.read()
-
     pdf_collection = db["pdfs"]
-    pdf_collection.insert_one(
+    pdf_id = pdf_collection.insert_one(
         {"user": user_data["email"], "pdf": pdf, "filename": resume.filename, "job_id": ObjectId(job_id)}
-    )
+    ).inserted_id
 
-    return JSONResponse(content={"message": "success"})
+    # Process and embed the resume using rag_utils functions
+    process_and_upload_resume(pdf, job_id, resume.filename, pdf_id)
 
+    return JSONResponse(content={"message": "Resume uploaded and processed successfully"})
 
 @JobRouter.post("/resume/query")
 async def read(query: ReadResume):
