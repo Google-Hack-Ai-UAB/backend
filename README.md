@@ -4,7 +4,13 @@
 
 `make build up`
 
-container will auto reload on change, if not working rebuild.
+* Configure the .env file accordingly
+
+``` Python
+MONGO_URL="mongodb+srv://userstorer:youwillneverguessthispassword@aihack.89so8jl.mongodb.net/?retryWrites=true&w=majority&appName=AIHack"
+
+```
+
 
 ## Tools Used
 * **FASTapi**: Web framework for building API endpoints
