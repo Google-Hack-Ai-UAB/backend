@@ -23,6 +23,13 @@ from vertexai.generative_models import GenerativeModel
 # LOCAL IMPORTS
 from backend.constants import PINECONE_API_KEY, GCP_PROJECT_ID, GCP_LOCATION
 
+# bson
+from bson.objectid import ObjectId
+
+# MONGO
+from pymongo import MongoClient
+from backend.mongo import get_cursor, init_mongo
+
 # GLOBAL VARS
 pc = Pinecone(api_key=PINECONE_API_KEY)
 vertexai.init(project=GCP_PROJECT_ID, location=GCP_LOCATION)
@@ -44,55 +51,6 @@ if index_name not in pc.list_indexes().names():
     )
 
 index = pc.Index(name=index_name)
-
-
-# def grab_local_files(resumes: str = "", ret: bool = True):
-#     """
-#     grabs local resume
-#     reads it for data
-#     splits it into semantic chunks
-#     embeds said chunks
-#     uploads the vectors
-
-#     params:
-#         index -> pinecone object, the index
-#         resumes -> can take a file path, if none then it grabs all resumes
-#         ret -> t/f : says whether to return data or do it in place"""
-#     global splits_cache
-#     data = {}
-#     if not resumes:
-#         resumes = glob.glob("resumes/*.pdf")
-#         for file_path in resumes:
-#             # loader = UnstructuredPDFLoader(file_path)
-#             loader = PDFMinerLoader(file_path)
-#             resume_data = loader.load()
-#             data[secure_filename(file_path)] = resume_data
-#     else:
-#         loader = PDFMinerLoader(resumes)
-#         resume_data = loader.load()
-#         data[secure_filename(resumes)] = resume_data
-
-
-#     vectors = []
-#     for file_path, contents in data.items():
-#         text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
-#         splits = text_splitter.split_documents(contents)
-
-#         splits_cache[file_path] = splits
-
-#         for i, doc in enumerate(splits):
-#             doc_text = doc.page_content
-#             if doc_text:
-#                 try:
-#                     embedding = embeddings.embed_query(doc_text)
-#                     vectors.append((f"{file_path}_{i}", embedding))
-#                 except Exception as e:
-#                     print(f"Error embedding document from {file_path}, part {i}: {e}")
-
-#     index.upsert(vectors=vectors)
-
-#     if ret:
-#         return data
 
 def grab_local_files(resumes: str = "", ret: bool = True):
     global splits_cache
@@ -123,6 +81,36 @@ def grab_local_files(resumes: str = "", ret: bool = True):
 
     if ret:
         return data
+
+def process_and_upload_resume(pdf, job_id, filename, pdf_id):
+    # Assuming PDFMinerLoader can read from raw PDF bytes
+    loader = PDFMinerLoader(pdf)
+    # maybe i wanna use unstructuredpdfloader here though
+    resume_data = loader.load()
+
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
+    splits = text_splitter.split_documents(resume_data)
+
+    vectors = []
+    for i, split in enumerate(splits):
+        doc_text = split.page_content
+        if doc_text:
+            embedding = embeddings.embed_query(doc_text)
+            vectors.append((f"{pdf_id}_{i}", embedding))
+
+    # Add job_id in the metadata for easy retrieval
+    index.upsert(vectors=vectors, metadata={"job_id": str(job_id)})
+
+    # Save processed data for quick access if needed
+    db = MongoClient()["ai"]
+    processed_collection = db["pdfs"]
+    processed_collection.insert_one({
+        "pdf_id": pdf_id,
+        "job_id": ObjectId(job_id),
+        "filename": filename,
+        "content": resume_data,
+        "splits": splits
+    })
 
 
 def query(question, job_title, job_desc, top_k=3):

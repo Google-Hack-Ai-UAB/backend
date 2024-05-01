@@ -53,8 +53,9 @@ async def update_profile(request: Request):
         return JSONResponse({"error": e}, status_code=501)
 
 
-@JobRouter.post("/upload")
+@JobRouter.post("/upload/{job_id}")
 async def upload(
+    job_id: str,
     resume: UploadFile = File(...), token_payload: str = Depends(oauth2_scheme)
 ):
     response = requests.get(
@@ -71,7 +72,7 @@ async def upload(
 
     pdf_collection = db["pdfs"]
     pdf_collection.insert_one(
-        {"user": user_data["email"], "pdf": pdf, "filename": resume.filename}
+        {"user": user_data["email"], "pdf": pdf, "filename": resume.filename, "job_id": ObjectId(job_id)}
     )
 
     return JSONResponse(content={"message": "success"})
