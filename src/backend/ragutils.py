@@ -114,9 +114,7 @@ def query_by_job_id(question, job_id, job_title, job_desc, top_k=3):
         You are an advanced technical recruiter assistant designed to aid in the preliminary screening of candidates based on their resumes. Your role is to assess candidates' suitability for specific roles as described by the recruiter.
 
         For each query:
-        - **Job Title**: {job_title}
-        - **Job Description**: {job_desc}
-        - **Recruiter Question**: This is a direct question from the recruiter regarding a candidate's fit for the role mentioned above.
+        - **Recruiter Question**: This is a direct question from the recruiter regarding a candidate's fit for the role mentioned above. This question also includes the title and description of the job.
 
         **Your task**:
         1. Review the provided "Context," which includes selected resumes.
