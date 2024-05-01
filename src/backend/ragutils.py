@@ -1,7 +1,7 @@
 import glob, os
 from dotenv import load_dotenv
 load_dotenv()
-from werkzeug.utils import secure_filename
+# from werkzeug.utils import secure_filename
 
 # EITHER
 # from langchain.document_loaders import TextLoader
@@ -53,36 +53,6 @@ if index_name not in pc.list_indexes().names():
     )
 
 index = pc.Index(name=index_name)
-
-def grab_local_files(resumes: str = "", ret: bool = True):
-    global splits_cache
-    data = {}
-    if not resumes:
-        resumes = glob.glob("resumes/*.pdf")
-
-    for file_path in resumes:
-        loader = PDFMinerLoader(file_path)
-        resume_data = loader.load()
-        file_key = secure_filename(file_path)
-        data[file_key] = resume_data
-
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
-        splits = text_splitter.split_documents(resume_data)
-        splits_cache[file_key] = [(file_key, split.page_content) for split in splits]
-
-        vectors = []
-        for i, (name, doc_text) in enumerate(splits_cache[file_key]):
-            if doc_text:
-                try:
-                    embedding = embeddings.embed_query(doc_text)
-                    vectors.append((f"{file_key}_{i}", embedding))
-                except Exception as e:
-                    print(f"Error embedding document from {file_path}, part {i}: {e}")
-
-        index.upsert(vectors=vectors)
-
-    if ret:
-        return data
 
 def process_and_upload_resume(pdf, job_id, filename, pdf_id):
     # Assuming PDFMinerLoader can read from raw PDF bytes
